@@ -1,4 +1,12 @@
 import { useState } from 'react'
+import {
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useMatch
+} from "react-router-dom"
+
 
 const Menu = () => {
   const padding = {
@@ -6,9 +14,9 @@ const Menu = () => {
   }
   return (
     <div>
-      <a href='#' style={padding}>anecdotes</a>
-      <a href='#' style={padding}>create new</a>
-      <a href='#' style={padding}>about</a>
+      <Link style={padding} to="/">anecdotes</Link>
+      <Link style={padding} to="/create new">create new</Link>
+      <Link style={padding} to="/about">about</Link>
     </div>
   )
 }
@@ -17,10 +25,22 @@ const AnecdoteList = ({ anecdotes }) => (
   <div>
     <h2>Anecdotes</h2>
     <ul>
-      {anecdotes.map(anecdote => <li key={anecdote.id} >{anecdote.content}</li>)}
+      {anecdotes.map(anecdote => <li key={anecdote.id} ><Link to={`/anecdotes/${anecdote.id}`}>{anecdote.content}</Link></li>)}
     </ul>
   </div>
 )
+
+const Anecdote = ({ anecdote }) => {
+
+  return (
+    <div>
+      <h2>{anecdote.content} by {anecdote.author}</h2>
+      <p>has {anecdote.votes} votes</p>
+      <p>for more info see {anecdote.info}</p>
+    </div>
+  )
+}
+
 
 const About = () => (
   <div>
@@ -37,7 +57,7 @@ const About = () => (
 )
 
 const Footer = () => (
-  <div>
+  <div className="footer">
     Anecdote app for <a href='https://fullstackopen.com/'>Full Stack Open</a>.
 
     See <a href='https://github.com/fullstack-hy2020/routed-anecdotes/blob/master/src/App.js'>https://github.com/fullstack-hy2020/routed-anecdotes/blob/master/src/App.js</a> for the source code.
@@ -49,6 +69,7 @@ const CreateNew = (props) => {
   const [author, setAuthor] = useState('')
   const [info, setInfo] = useState('')
 
+  const navigate = useNavigate()
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -58,6 +79,7 @@ const CreateNew = (props) => {
       info,
       votes: 0
     })
+    navigate('/')
   }
 
   return (
@@ -74,13 +96,21 @@ const CreateNew = (props) => {
         </div>
         <div>
           url for more info
-          <input name='info' value={info} onChange={(e)=> setInfo(e.target.value)} />
+          <input name='info' value={info} onChange={(e) => setInfo(e.target.value)} />
         </div>
         <button>create</button>
       </form>
     </div>
   )
 
+}
+
+const Notification = ({ message }) => {
+  if (message === null) {
+    return null
+  }
+
+  return <div className="notification">{message}</div>
 }
 
 const App = () => {
@@ -101,11 +131,16 @@ const App = () => {
     }
   ])
 
-  const [notification, setNotification] = useState('')
+  const [notification, setNotification] = useState(null)
 
   const addNew = (anecdote) => {
     anecdote.id = Math.round(Math.random() * 10000)
     setAnecdotes(anecdotes.concat(anecdote))
+    setNotification(`Added ${anecdote.content}`)
+    setTimeout(() => {
+      setNotification(null)
+    }, 5000)
+
   }
 
   const anecdoteById = (id) =>
@@ -122,15 +157,32 @@ const App = () => {
     setAnecdotes(anecdotes.map(a => a.id === id ? voted : a))
   }
 
+  const match = useMatch('/anecdotes/:id')
+
+  const anecdote = match
+    ? anecdotes.find(anecdote => anecdote.id === Number(match.params.id))
+    : null
+
+
+
   return (
-    <div>
-      <h1>Software anecdotes</h1>
-      <Menu />
-      <AnecdoteList anecdotes={anecdotes} />
-      <About />
-      <CreateNew addNew={addNew} />
-      <Footer />
-    </div>
+    <>
+      <Notification message={notification} />
+
+      <div className="app-container">
+        <Menu />
+        <h1>Software anecdotes</h1>
+        <div className='content'>
+          <Routes>
+            <Route path="/anecdotes/:id" element={<Anecdote anecdote={anecdote} />} />
+            <Route path="/" element={<AnecdoteList anecdotes={anecdotes} />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/create new" element={<CreateNew addNew={addNew} />} />
+          </Routes>
+        </div>
+        <Footer />
+      </div>
+    </>
   )
 }
 
